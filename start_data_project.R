@@ -149,11 +149,3 @@ plot_usmap(regions = "states", data = data_democrats)+
   scale_fill_continuous(low = "white", high = "blue", name = "% donations by men")+
   labs(title = "TITLE", subtitle = "SUBTITLE")+
   theme(legend.position = "right")
-
-
-#do results correlate with conserativeness by state ? 
-#https://www.pewresearch.org/religion/religious-landscape-study/compare/political-ideology/by/state/
-#(correlation coudl be explained that in state which are more conservaive less women work etc. )
-#we only take the campaign contributons because there donations limtis are capped thus they are not distorted 
-#if extremely large male donors make a big donation for a pac etc.
-
