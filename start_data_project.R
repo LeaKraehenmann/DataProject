@@ -38,3 +38,5 @@ names_df[names_df$prob_M > 0.3 & names_df$prob_M < 0.4,]
 
 #bidenvictory fund is connected to national committee where donors can give and contribute much much more money than to the 
 #regulated biden for presidency campaign!
+
+
