@@ -48,7 +48,7 @@ names_df$gender[names_df$prob_M < 0.2] <- "F"
 names_df$name <- toupper(names_df$name)
 
 ####################################################
-#Donation Data !!!!!!!!!!!!!WE ALSO NEED TO CHECK FOR DUPLICATES IN THE DATA!!!!!!!!!!!!!!!!!!!!
+#Donation Data !check for duplicates in the data!
 ####################################################
 
 #download donation bulk data from https://www.fec.gov/data/browse-data/?tab=bulk-data
@@ -102,7 +102,7 @@ donations <- donations |> rename("Candidate" = "MEMO_TEXT")
 
 merged <- merge(donations, names_df[c("name","gender")], by.x = "first_name", by.y = "name", all.x = T)
 
-#remove NA's --> sHOW IN A SUMMARY TABLE WHAT IMPACT THIS HAS ON THE ANALYSIS -> HOW MANY VALUES DO WE DROP ETC. ?
+#remove NA's --> show impact of drop in table as output?
 merged <-drop_na(merged)
 #gender ratio per state from merged data_frame 
 merged_summarized <- merged |> group_by(STATE, gender, Candidate) |> summarize(VALUE = sum(TRANSACTION_AMT))
@@ -145,7 +145,9 @@ plot_usmap(regions = "states", data = data_republicans)+
 #plot result for democrats 
 data_democrats <- plot_state |> filter(Candidate == "BIDEN")
 
-plot_usmap(regions = "states", data = data_democrats)+
-  scale_fill_continuous(low = "white", high = "blue", name = "% donations by men")+
-  labs(title = "TITLE", subtitle = "SUBTITLE")+
-  theme(legend.position = "right")
+plot_democrats <- plot_usmap(regions = "states", data = data_democrats)+
+                    scale_fill_continuous(low = "white", high = "blue", name = "% donations by men")+
+                    labs(title = "TITLE", subtitle = "SUBTITLE")+
+                    theme(legend.position = "right")
+
+ggsave(plot_democrats, device = "png", filename = "sample")
