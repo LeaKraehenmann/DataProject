@@ -48,7 +48,7 @@ names_df$gender[names_df$prob_M < 0.2] <- "F"
 names_df$name <- toupper(names_df$name)
 
 ####################################################
-#Donation Data
+#Donation Data !!!!!!!!!!!!!WE ALSO NEED TO CHECK FOR DUPLICATES IN THE DATA!!!!!!!!!!!!!!!!!!!!
 ####################################################
 
 #download donation bulk data from https://www.fec.gov/data/browse-data/?tab=bulk-data
@@ -64,13 +64,13 @@ donations <- data.frame()
 donation_files <- list.files("donations")
 
 #read all file names with loop, merge and store as donations
-for (i in donation_files[1:2]){
+for (i in donation_files[1]){
   
   temp <- fread(paste0("donations/", i), sep = "|", header = F, skip = 1)
   
   #filter out only donations which were made to Biden and Trump Fundraising Committee
   biden_for_president <- grepl("BIDEN FOR PRESIDENT", temp$V20, ignore.case = T)
-  trump_for_president <- grepl("DONALD J TRUMP FOR PRESIDENT", temp$V20, ignore.case = T)
+  trump_for_president <- grepl("TRUMP FOR PRESIDENT", temp$V20, ignore.case = T)
   donations <- bind_rows(donations, temp[biden_for_president | trump_for_president,])
   
 }
@@ -92,34 +92,36 @@ first_name <- sapply(str_split(first_name, " "), function(x) x[which.max(nchar(x
 first_name <- sapply(str_split(first_name, "\\."), function(x) x[which.max(nchar(x))])
 donations$first_name <- first_name
 
-#select only columns that are needed for further analysis
-donations <- donations |> select(STATE, ZIP_CODE, EMPLOYER, OCCUPATION, TRANSACTION_AMT, first_name, last_name)
-
+#select only columns that are needed for further analysis & do some cleaning
+donations <- donations |> select(STATE, ZIP_CODE, EMPLOYER, OCCUPATION, TRANSACTION_AMT, first_name, last_name, MEMO_TEXT)
+donations$MEMO_TEXT <- ifelse(grepl("BIDEN", donations$MEMO_TEXT), "BIDEN", "TRUMP")
+donations <- donations |> rename("Candidate" = "MEMO_TEXT")
 ####################################################
 #Analyze Donation Data
 ####################################################
 
-merged <- merge(donations[c("first_name", "STATE", "last_name", "TRANSACTION_AMT")], names_df[c("name","gender")], by.x = "first_name", by.y = "name", all.x = T)
+merged <- merge(donations, names_df[c("name","gender")], by.x = "first_name", by.y = "name", all.x = T)
 
-#remove NA's
+#remove NA's --> sHOW IN A SUMMARY TABLE WHAT IMPACT THIS HAS ON THE ANALYSIS -> HOW MANY VALUES DO WE DROP ETC. ?
 merged <-drop_na(merged)
 #gender ratio per state from merged data_frame 
-merged_summarized <- merged |> group_by(STATE, gender) |> summarize(VALUE = sum(TRANSACTION_AMT))
+merged_summarized <- merged |> group_by(STATE, gender, Candidate) |> summarize(VALUE = sum(TRANSACTION_AMT))
 merged_summarized <- pivot_wider(merged_summarized, names_from = gender, values_from = VALUE)
 
 merged_summarized[is.na(merged_summarized)] <- 0
-
 merged_summarized$pct_men <- merged_summarized$M / (merged_summarized$M + merged_summarized$F)
 
 
 ####################################################
 #Plot Donation Data
 ####################################################
-plot_state <- merged_summarized |> select(STATE, pct_men)
-colnames(plot_state) <- c("state", "values")
 
-#get vecor of proper US State Abbreviations
-#store all data tables from wikipedia website
+#clean frame to use for the US state plot function
+plot_state <- merged_summarized  |> select(STATE, pct_men, Candidate)
+colnames(plot_state) <- c("state", "values", "Candidate")
+
+#get vector of proper US State Abbreviations
+#store all data tables from Wikipedia website
 wiki_tables <- read_html("https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States") |>
             html_nodes(css = "table") |> 
             html_table(fill = T)
@@ -129,9 +131,21 @@ states <- table[2]
 states <- states$`Flag, name andpostal abbreviation[13]`
 states <- states[-1]
 
+#filter out non-existent states
 plot_state <- plot_state |> filter(state %in% states)
 
-plot_usmap(regions = "states", data = plot_state)+
+#plot result for republicans
+data_republicans <- plot_state |> filter(Candidate == "TRUMP")
+
+plot_usmap(regions = "states", data = data_republicans)+
+  scale_fill_continuous(low = "white", high = "blue", name = "% donations by men")+
+  labs(title = "TITLE", subtitle = "SUBTITLE")+
+  theme(legend.position = "right")
+
+#plot result for democrats 
+data_democrats <- plot_state |> filter(Candidate == "BIDEN")
+
+plot_usmap(regions = "states", data = data_democrats)+
   scale_fill_continuous(low = "white", high = "blue", name = "% donations by men")+
   labs(title = "TITLE", subtitle = "SUBTITLE")+
   theme(legend.position = "right")
